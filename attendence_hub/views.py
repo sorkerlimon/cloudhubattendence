@@ -158,6 +158,17 @@ def deactive(request):
     
     # Query attendance records for today
     attendance_records = AttendanceRecord.objects.filter(user=current_user, intime__date=today)
+    
+   # Initialize break status variables
+    break_start = None
+    break_end = None
+
+    # Loop through attendance records to get break start and end values (assuming one record per day)
+    for record in attendance_records:
+        break_start = record.break_start
+        break_end = record.break_end
+        print("Break Start:", break_start)
+        print("Break End:", break_end)
 
     # Initialize total break time
     total_break_time = timedelta()
@@ -204,7 +215,9 @@ def deactive(request):
         'end_date': timezone.now().date(),
         'hours':hours,
         'minutes':minutes,
-        'seconds':seconds
+        'seconds':seconds,
+        'break_start': break_start,  # Pass break_start to the template
+        'break_end': break_end   
     }
 
     return render(request, 'deactive.html', context)

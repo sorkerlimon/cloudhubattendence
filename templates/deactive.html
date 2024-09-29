@@ -148,16 +148,26 @@
         
         <div class="status-wrapper">
             <div id="statusCircle" class="status-circle deactive" onclick="updateDeactiveStatus()">
-                <span id="statusText" class="status-text">Deactive</span>
+                <span id="statusText" class="status-text">Clock Out</span>
                 <div class="status-indicator"></div>
             </div>
         </div>
         
-        <div>
+        {% comment %} <div>
             <button id="breakInBtn" class="btn btn-break-in" onclick="handleBreakIn()">Break In</button>
             <button id="breakOutBtn" class="btn btn-break-out" onclick="handleBreakOut()">Break Out</button>
+        </div> {% endcomment %}
+        <div>
+            {% if break_start is None and break_end is None %}
+                <button id="breakInBtn" class="btn btn-break-in" onclick="handleBreakIn()">Break In</button>
+            {% elif break_start is not None and break_end is None %}
+                <button id="breakOutBtn" class="btn btn-break-out" onclick="handleBreakOut()">Break Out</button>
+            {% else %}
+                <p style="background-color: #f0f8ff; color: #2c3e50; border: 1px solid #dfe6e9; padding: 15px; border-radius: 8px; font-size: 16px; text-align: center; width: 300px; margin: 20px auto;">
+                    ✅ Break time completed
+                </p>                
+            {% endif %}
         </div>
-        
         <a href="{% url 'logout' %}" class="btn btn-logout">Log Out</a>
 
         <div class="user-info">
