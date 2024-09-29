@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from django.views.decorators.http import require_POST
 import json
 
+
 def login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -43,36 +44,84 @@ def active(request):
     current_user = request.user
     today = timezone.now().date()
 
-    # Check if the user has an attendance record for today
     attendance_record = AttendanceRecord.objects.filter(user=current_user, intime__date=today).first()
 
-    # Check if the attendance status is 'P' (Present) or 'L' (Late)
     if attendance_record and attendance_record.status in ['P', 'L']:
-        # User is active today, redirect to deactive
         return redirect('deactive')
 
-    # User is not active today, render the active page
     return render(request, 'active.html', {'current_user': current_user})
 
 
 
 @login_required
+# def active_data_save(request):
+#     if request.method == 'POST': 
+#         current_user = request.user
+#         today = timezone.now().date() 
+#         current_time = timezone.now().time()
+#         user_profile = UserProfile.objects.get(user=current_user)
+#         day_of_week = today.strftime('%A')
+#         print('day_of_week',day_of_week)
+
+#         shift = getattr(user_profile, f"{day_of_week.lower()}_shift", None)
+#         print('shift',shift)
+
+#         status = 'A' 
+#         if shift:
+#             if current_time > shift.start_time:
+#                 status = 'L' 
+#             elif current_time > shift.start_time:
+#                 status = 'P' 
+
+#         attendance_record, created = AttendanceRecord.objects.get_or_create(
+#             user=current_user,
+#             intime__date=today, 
+#             defaults={
+#                 'intime': timezone.now(), 
+#                 'status': status,
+#             }
+#         )
+        
+#         if not created:  
+#             attendance_record.intime = timezone.now() 
+#             attendance_record.status = status
+#             attendance_record.save()
+
+#         response_data = {
+#             'status': 'success',
+#             'intime': attendance_record.intime.isoformat(),  
+#             'redirect_url': '/deactive/' 
+#         }
+#         return JsonResponse(response_data)
+
+#     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+
+
 def active_data_save(request):
     if request.method == 'POST': 
         current_user = request.user
         today = timezone.now().date() 
         current_time = timezone.now().time()
+        
+
         user_profile = UserProfile.objects.get(user=current_user)
+
         day_of_week = today.strftime('%A')
-        print('day_of_week',day_of_week)
+        print('day_of_week:', day_of_week)
 
         shift = getattr(user_profile, f"{day_of_week.lower()}_shift", None)
-        print('shift',shift)
+        print('shift:', shift)
 
-        status = 'A' 
+        status = 'A'  
+        
         if shift:
-            if current_time > shift.start_time:
-                status = 'L' 
+            if current_time < shift.start_time:
+                status = 'P' 
+            elif current_time >= shift.start_time:
+                status = 'L'  
+
 
         attendance_record, created = AttendanceRecord.objects.get_or_create(
             user=current_user,
@@ -83,7 +132,7 @@ def active_data_save(request):
             }
         )
         
-        if not created:  
+        if not created: 
             attendance_record.intime = timezone.now() 
             attendance_record.status = status
             attendance_record.save()
@@ -123,7 +172,7 @@ def deactive(request):
     hours = total_break_time.seconds // 3600
     minutes = (total_break_time.seconds // 60) % 60
     seconds = total_break_time.seconds % 60  # Get remaining seconds
-    print(f"Total break time consumed by {current_user} today: {total_break_time}")
+    # print(f"Total break time consumed by {current_user} today: {total_break_time}")
 
 
 
@@ -141,8 +190,8 @@ def deactive(request):
     days_with_attendance = attendance_records.dates('intime', 'day').count()
     attendance_percentage = (days_with_attendance / 30) * 100 if days_with_attendance > 0 else 0
 
-    print(f"Total records: {total_records}, Late: {total_late}, Early Leave: {total_early_leave}")
-    print(f"Days with attendance: {days_with_attendance}, Attendance percentage: {attendance_percentage:.2f}%")
+    # print(f"Total records: {total_records}, Late: {total_late}, Early Leave: {total_early_leave}")
+    # print(f"Days with attendance: {days_with_attendance}, Attendance percentage: {attendance_percentage:.2f}%")
 
     context = {
         'current_user': current_user,
