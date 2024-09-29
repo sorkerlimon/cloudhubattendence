@@ -1,0 +1,283 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Dashboard</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+        .status-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: #f8f8f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 20px;
+        }
+        .status-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333333;
+        }
+        .status-indicator {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            bottom: 20px;
+            right: 20px;
+            box-shadow: 0 0 0 5px #ffffff;
+            transition: background-color 0.3s ease;
+        }
+        .active .status-indicator {
+            background-color: #4CAF50;
+        }
+        .deactive .status-indicator {
+            background-color: #F44336;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-break-in {
+            background-color: #4CAF50; /* Green */
+        }
+        .btn-break-out {
+            background-color: #f44336; /* Red */
+        }
+        .btn-logout {
+            background-color: #007bff; /* Blue */
+        }
+        .user-info {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333333;
+        }
+        .attendance-table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .attendance-table th, .attendance-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .attendance-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .attendance-table tr:nth-child(even) {
+            background-color: #f8f8f8;
+        }
+        .attendance-table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .summary {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .dashboard-logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-header">
+            <img src="{% static 'images/cloudhub.png' %}" alt="Dashboard Logo" class="dashboard-logo">
+            <h2>Attendance Dashboard</h2>
+        </div>
+        
+        <div class="status-wrapper">
+            <div id="statusCircle" class="status-circle deactive" onclick="updateDeactiveStatus()">
+                <span id="statusText" class="status-text">Deactive</span>
+                <div class="status-indicator"></div>
+            </div>
+        </div>
+        
+        <div>
+            <button id="breakInBtn" class="btn btn-break-in" onclick="handleBreakIn()">Break In</button>
+            <button id="breakOutBtn" class="btn btn-break-out" onclick="handleBreakOut()">Break Out</button>
+        </div>
+        
+        <a href="{% url 'logout' %}" class="btn btn-logout">Log Out</a>
+
+        <div class="user-info">
+            Logged in as: {{ current_user.username }}
+        </div>
+
+        <table class="attendance-table">
+            <thead>
+                <tr>
+                    <th>Attendance</th>
+                    <th>Attendance Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Period</td>
+                    <td>{{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</td>
+                </tr>
+                <tr>
+                    <td>Total Work Days</td>
+                    <td>{{ total_records }}</td>
+                </tr>
+                <tr>
+                    <td>Late Arrivals</td>
+                    <td>{{ total_late }}</td>
+                </tr>
+                <tr>
+                    <td>Early Leaves</td>
+                    <td>{{ total_early_leave }}</td>
+                </tr>
+                <tr>
+                    <td>Total Break time</td>
+                    <td>{{ hours }} Hr {{ minutes }} Min {{ seconds }} Sec</td>
+                </tr>
+                <tr>
+                    <td>Days with Attendance</td>
+                    <td>{{ days_with_attendance }} out of 30</td>
+                </tr>
+                <tr class="summary">
+                    <td>Attendance Percentage</td>
+                    <td>{{ attendance_percentage }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+    function updateDeactiveStatus() {
+        fetch("{% url 'deactive_data_save' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById("statusText").innerText = "Deactivated at: " + data.outtime;
+                window.location.href = data.redirect_url;  
+            } else {
+                alert("Error updating status: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    function handleBreakIn() {
+        fetch("{% url 'breakin_data_save' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                break_start: new Date().toISOString()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert("Break Time Started Successfully!");  // Alert for Break In
+                console.log("Break In saved successfully");
+            } else {
+                alert("Error saving Break In: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+        console.log("Break In clicked");
+    }
+
+    function handleBreakOut() {
+        fetch("{% url 'breakout_data_save' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                break_end: new Date().toISOString()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert("Break Time Ended Successfully!");  // Alert for Break Out
+                console.log("Break Out saved successfully");
+            } else {
+                alert("Error saving Break Out: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+        console.log("Break Out clicked");
+    }
+    </script>
+</body>
+</html>

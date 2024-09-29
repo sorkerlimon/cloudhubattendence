@@ -1,0 +1,31 @@
+
+-- 1. Create the cloudhubattendence Database ---- 
+CREATE DATABASE cloudhubattendence;
+
+CREATE USER 'cloudhub'@'%' IDENTIFIED BY 'cloudhub@123';
+GRANT ALL PRIVILEGES ON cloudhubattendence.* TO 'cloudhub'@'%';
+
+FLUSH PRIVILEGES;
+
+-- For checking remote permision
+SELECT user, host FROM mysql.user WHERE user = 'root';
+
+
+-- Grant access from any host  This one for connect database through remotely for root
+CREATE USER 'root'@'%' IDENTIFIED BY 'limon@123';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+
+-- OR update existing root user
+UPDATE mysql.user SET host = '%' WHERE user = 'root' AND host = 'localhost';
+FLUSH PRIVILEGES;
+
+
+
+docker build -t cloudhub .
+docker run -d -p 8000:8000 cloudhub
+
+
+
+
+
+
