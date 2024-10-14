@@ -15,18 +15,55 @@ from django.db.models import Count, Q
 from datetime import datetime, timedelta
 from django.views.decorators.http import require_POST
 import json
+import pytz
+from django.http import JsonResponse,HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import user_passes_test
 
+# def login(request):
+#     if request.method == 'POST':
+#         username = request.POST['username']
+#         password = request.POST['password']
+
+        
+#         user = authenticate(request, username=username, password=password)  #
+        
+#         if user is not None:
+#             auth_login(request, user) 
+#             return redirect('active') 
+#         else:
+#             messages.error(request, 'Invalid email or password. Please try again.')
+
+#     return render(request, 'login.html')
+
+
+from django.contrib.auth import authenticate, login as auth_login
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import AttendanceRecord
+import uuid
+import subprocess
+from getmac import get_mac_address
 
 def login(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        print(username,password)
-        
-        user = authenticate(request, username=username, password=password)  #
-        
+
+        user = authenticate(request, username=username, password=password)
+
         if user is not None:
-            auth_login(request, user) 
+            auth_login(request, user)
+            
+            # Update the is_online field to True for the user's latest attendance record
+            try:
+                attendance_record = AttendanceRecord.objects.filter(user=user).latest('intime')
+                attendance_record.is_online = True
+                attendance_record.save()
+            except AttendanceRecord.DoesNotExist:
+                # Handle the case where no attendance record exists for this user
+                pass
+            
             return redirect('active') 
         else:
             messages.error(request, 'Invalid email or password. Please try again.')
@@ -34,6 +71,7 @@ def login(request):
     return render(request, 'login.html')
 
 
+@login_required
 def logout(request):
     auth_logout(request) 
     return redirect('login') 
@@ -42,68 +80,25 @@ def logout(request):
 @login_required
 def active(request):
     current_user = request.user
+    print(current_user)
     today = timezone.now().date()
 
     attendance_record = AttendanceRecord.objects.filter(user=current_user, intime__date=today).first()
 
+
     if attendance_record and attendance_record.status in ['P', 'L']:
+        print(attendance_record)
         return redirect('deactive')
 
     return render(request, 'active.html', {'current_user': current_user})
 
-
-
 @login_required
-# def active_data_save(request):
-#     if request.method == 'POST': 
-#         current_user = request.user
-#         today = timezone.now().date() 
-#         current_time = timezone.now().time()
-#         user_profile = UserProfile.objects.get(user=current_user)
-#         day_of_week = today.strftime('%A')
-#         print('day_of_week',day_of_week)
-
-#         shift = getattr(user_profile, f"{day_of_week.lower()}_shift", None)
-#         print('shift',shift)
-
-#         status = 'A' 
-#         if shift:
-#             if current_time > shift.start_time:
-#                 status = 'L' 
-#             elif current_time > shift.start_time:
-#                 status = 'P' 
-
-#         attendance_record, created = AttendanceRecord.objects.get_or_create(
-#             user=current_user,
-#             intime__date=today, 
-#             defaults={
-#                 'intime': timezone.now(), 
-#                 'status': status,
-#             }
-#         )
-        
-#         if not created:  
-#             attendance_record.intime = timezone.now() 
-#             attendance_record.status = status
-#             attendance_record.save()
-
-#         response_data = {
-#             'status': 'success',
-#             'intime': attendance_record.intime.isoformat(),  
-#             'redirect_url': '/deactive/' 
-#         }
-#         return JsonResponse(response_data)
-
-#     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
-
-
-
 def active_data_save(request):
     if request.method == 'POST': 
         current_user = request.user
-        today = timezone.now().date() 
-        current_time = timezone.now().time()
+        today = timezone.now().astimezone(pytz.timezone('Asia/Dhaka')).date()  # Adjusted to local time
+        current_time = timezone.now().astimezone(pytz.timezone('Asia/Dhaka')).time()  # Adjusted to local time
+        
         
 
         user_profile = UserProfile.objects.get(user=current_user)
@@ -112,7 +107,7 @@ def active_data_save(request):
         print('day_of_week:', day_of_week)
 
         shift = getattr(user_profile, f"{day_of_week.lower()}_shift", None)
-        print('shift:', shift)
+        print('shift:', shift.start_time,'Currrent time :', current_time)
 
         status = 'A'  
         
@@ -129,6 +124,7 @@ def active_data_save(request):
             defaults={
                 'intime': timezone.now(), 
                 'status': status,
+                'is_online': True
             }
         )
         
@@ -140,7 +136,7 @@ def active_data_save(request):
         response_data = {
             'status': 'success',
             'intime': attendance_record.intime.isoformat(),  
-            'redirect_url': '/deactive/' 
+            'redirect_url': '/attendence_hub/deactive/' 
         }
         return JsonResponse(response_data)
 
@@ -227,8 +223,9 @@ def deactive(request):
 def deactive_data_save(request):
     if request.method == 'POST': 
         current_user = request.user
-        today = timezone.now().date()
+        today = timezone.now().astimezone(pytz.timezone('Asia/Dhaka')).date() 
 
+        
         try:
             attendance_record = AttendanceRecord.objects.get(user=current_user, intime__date=today)
 
@@ -252,7 +249,7 @@ def deactive_data_save(request):
             response_data = {
                 'status': 'success',
                 'outtime': attendance_record.outtime.isoformat(),
-                'redirect_url': '/deactive/' 
+                'redirect_url': '/attendence_hub/deactive/' 
             }
             return JsonResponse(response_data)
         except AttendanceRecord.DoesNotExist:
@@ -260,7 +257,7 @@ def deactive_data_save(request):
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
-
+@login_required
 @require_POST
 def breakin_data_save(request):
     data = json.loads(request.body)
@@ -278,6 +275,7 @@ def breakin_data_save(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
 
+@login_required
 @require_POST
 def breakout_data_save(request):
     data = json.loads(request.body)
@@ -292,3 +290,62 @@ def breakout_data_save(request):
         return JsonResponse({'status': 'error', 'message': 'No attendance record found for today'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+    
+
+@login_required
+@csrf_exempt  # Exempt CSRF protection for this view
+def update_online_status(request):
+    if request.method == 'POST':
+        current_user = request.user
+        is_online = json.loads(request.body).get('is_online', False)
+        
+        try:
+            attendance_record = AttendanceRecord.objects.filter(user=current_user).latest('intime')
+            attendance_record.is_online = is_online
+            attendance_record.save()
+            return JsonResponse({'status': 'success'})
+        except AttendanceRecord.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'No attendance record found'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+# @login_required
+# def dashboard(request):
+#     # if not request.user.is_staff:
+#     #     return HttpResponseForbidden("You do not have permission to access this page.")
+#     # Get the current date
+#     today = datetime.now().date()
+#     print(today)
+    
+#     # Fetch attendance records for the current day
+#     current_day_records = AttendanceRecord.objects.filter(intime__date=today)
+#     print(current_day_records)
+#     for record in current_day_records:
+#         print(record.is_online)
+
+#     context = {
+#         'attendance_records': current_day_records
+#     }
+    
+#     return render(request, 'dashboard.html', context)
+
+# Custom decorator to check if user is staff
+
+
+
+def is_staff_user(user):
+    return user.is_staff
+
+@user_passes_test(is_staff_user, login_url='/login/')
+def dashboard(request):
+    # Get the current date
+    today = datetime.now().date()
+    
+    # Fetch attendance records for the current day
+    current_day_records = AttendanceRecord.objects.filter(intime__date=today)
+
+    # Pass attendance records to the template
+    context = {
+        'attendance_records': current_day_records
+    }
+    
+    return render(request, 'dashboard.html', context)

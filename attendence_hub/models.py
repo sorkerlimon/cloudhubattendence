@@ -56,6 +56,7 @@ class AttendanceRecord(models.Model):
     break_start = models.DateTimeField(null=True, blank=True)
     break_end = models.DateTimeField(null=True, blank=True)
     present_or_late_count = models.IntegerField(default=0)
+    is_online = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} - {self.intime.date()}"

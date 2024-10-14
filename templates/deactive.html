@@ -9,26 +9,49 @@
         body, html {
             height: 100%;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
         }
         .container {
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .dashboard-header {
+            display: flex;
             align-items: center;
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            width: 100%;
+            margin-bottom: 40px;
+        }
+        .dashboard-logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        h2 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        .main-content {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+        }
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .right-panel {
+            flex-shrink: 0;
         }
         .status-circle {
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             background-color: #f8f8f8;
             display: flex;
@@ -38,10 +61,10 @@
             position: relative;
             cursor: pointer;
             user-select: none;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
         .status-text {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             color: #333333;
         }
@@ -52,11 +75,7 @@
             border-radius: 50%;
             bottom: 20px;
             right: 20px;
-            box-shadow: 0 0 0 5px #ffffff;
-            transition: background-color 0.3s ease;
-        }
-        .active .status-indicator {
-            background-color: #4CAF50;
+            box-shadow: 0 0 0 3px #ffffff;
         }
         .deactive .status-indicator {
             background-color: #F44336;
@@ -72,20 +91,12 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin: 5px;
+            margin: 10px 0;
+            width: 120px;
         }
-        .btn:hover {
-            opacity: 0.9;
-        }
-        .btn-break-in {
-            background-color: #4CAF50; /* Green */
-        }
-        .btn-break-out {
-            background-color: #f44336; /* Red */
-        }
-        .btn-logout {
-            background-color: #007bff; /* Blue */
-        }
+        .btn-break-in { background-color: #4CAF50; }
+        .btn-break-out { background-color: #f44336; }
+        .btn-logout { background-color: #007bff; }
         .user-info {
             margin-top: 20px;
             font-size: 18px;
@@ -93,49 +104,27 @@
             color: #333333;
         }
         .attendance-table {
-            margin-top: 20px;
-            border-collapse: collapse;
             width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .attendance-table th, .attendance-table td {
             border: 1px solid #ddd;
             padding: 12px;
             text-align: left;
+            font-size: 16px;
         }
         .attendance-table th {
             background-color: #3498db;
             color: white;
             font-weight: bold;
-            text-transform: uppercase;
         }
         .attendance-table tr:nth-child(even) {
             background-color: #f8f8f8;
         }
-        .attendance-table tr:hover {
-            background-color: #f1f1f1;
-        }
         .summary {
             background-color: #ecf0f1;
             font-weight: bold;
-        }
-        h2 {
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-            width: 100%;
-            text-align: center;
-        }
-        .dashboard-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        .dashboard-logo {
-            width: 50px;
-            height: 50px;
-            margin-right: 15px;
         }
     </style>
 </head>
@@ -146,72 +135,68 @@
             <h2>Attendance Dashboard</h2>
         </div>
         
-        <div class="status-wrapper">
-            <div id="statusCircle" class="status-circle deactive" onclick="updateDeactiveStatus()">
-                <span id="statusText" class="status-text">Clock Out</span>
-                <div class="status-indicator"></div>
+        <div class="main-content">
+            <div class="left-panel">
+                <div id="statusCircle" class="status-circle deactive" onclick="updateDeactiveStatus()">
+                    <span id="statusText" class="status-text">Clock Out</span>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                {% comment %} <div>
+                    {% if break_start is None and break_end is None %}
+                        <button id="breakInBtn" class="btn btn-break-in" onclick="handleBreakIn()">Break In</button>
+                    {% elif break_start is not None and break_end is None %}
+                        <button id="breakOutBtn" class="btn btn-break-out" onclick="handleBreakOut()">Break Out</button>
+                    {% else %}
+                        <p style="background-color: #f0f8ff; color: #2c3e50; border: 1px solid #dfe6e9; padding: 10px; border-radius: 5px; font-size: 16px; text-align: center; width: 200px;">
+                            ✅ Break time completed
+                        </p>                
+                    {% endif %}
+                </div> {% endcomment %}
+                <a href="{% url 'logout' %}" class="btn btn-logout">Log Out</a>
+
+                <div class="user-info">
+                    Logged in as: {{ current_user.username }}
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Attendance</th>
+                            <th>Attendance Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Total Work Days</td>
+                            <td>{{ total_records }}</td>
+                        </tr>
+                        <tr>
+                            <td>Late Arrivals</td>
+                            <td>{{ total_late }}</td>
+                        </tr>
+                        <tr>
+                            <td>Early Leaves</td>
+                            <td>{{ total_early_leave }}</td>
+                        </tr>
+                        {% comment %} <tr>
+                            <td>Total Break time</td>
+                            <td>{{ hours }} Hr {{ minutes }} Min {{ seconds }} Sec</td>
+                        </tr> {% endcomment %}
+                        <tr>
+                            <td>Days with Attendance</td>
+                            <td>{{ days_with_attendance }} out of 30</td>
+                        </tr>
+                        <tr class="summary">
+                            <td>Attendance Percentage</td>
+                            <td>{{ attendance_percentage }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-        
-        {% comment %} <div>
-            <button id="breakInBtn" class="btn btn-break-in" onclick="handleBreakIn()">Break In</button>
-            <button id="breakOutBtn" class="btn btn-break-out" onclick="handleBreakOut()">Break Out</button>
-        </div> {% endcomment %}
-        <div>
-            {% if break_start is None and break_end is None %}
-                <button id="breakInBtn" class="btn btn-break-in" onclick="handleBreakIn()">Break In</button>
-            {% elif break_start is not None and break_end is None %}
-                <button id="breakOutBtn" class="btn btn-break-out" onclick="handleBreakOut()">Break Out</button>
-            {% else %}
-                <p style="background-color: #f0f8ff; color: #2c3e50; border: 1px solid #dfe6e9; padding: 15px; border-radius: 8px; font-size: 16px; text-align: center; width: 300px; margin: 20px auto;">
-                    ✅ Break time completed
-                </p>                
-            {% endif %}
-        </div>
-        <a href="{% url 'logout' %}" class="btn btn-logout">Log Out</a>
-
-        <div class="user-info">
-            Logged in as: {{ current_user.username }}
-        </div>
-
-        <table class="attendance-table">
-            <thead>
-                <tr>
-                    <th>Attendance</th>
-                    <th>Attendance Data</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Period</td>
-                    <td>{{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</td>
-                </tr>
-                <tr>
-                    <td>Total Work Days</td>
-                    <td>{{ total_records }}</td>
-                </tr>
-                <tr>
-                    <td>Late Arrivals</td>
-                    <td>{{ total_late }}</td>
-                </tr>
-                <tr>
-                    <td>Early Leaves</td>
-                    <td>{{ total_early_leave }}</td>
-                </tr>
-                <tr>
-                    <td>Total Break time</td>
-                    <td>{{ hours }} Hr {{ minutes }} Min {{ seconds }} Sec</td>
-                </tr>
-                <tr>
-                    <td>Days with Attendance</td>
-                    <td>{{ days_with_attendance }} out of 30</td>
-                </tr>
-                <tr class="summary">
-                    <td>Attendance Percentage</td>
-                    <td>{{ attendance_percentage }}%</td>
-                </tr>
-            </tbody>
-        </table>
     </div>
     
     <script>
@@ -288,6 +273,16 @@
         });
         console.log("Break Out clicked");
     }
+
+
+
+    window.addEventListener("beforeunload", function (event) {
+        // Send an AJAX request to update the user's status when they close the tab
+        navigator.sendBeacon("{% url 'update_online_status' %}", JSON.stringify({
+            'is_online': false
+        }));
+    });
+
     </script>
 </body>
 </html>
